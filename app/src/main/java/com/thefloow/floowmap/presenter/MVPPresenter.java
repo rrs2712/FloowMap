@@ -5,4 +5,5 @@ package com.thefloow.floowmap.presenter;
  */
 
 public interface MVPPresenter {
+    void requestModel();
 }

@@ -2,12 +2,18 @@ package com.thefloow.floowmap.view;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -16,6 +22,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.thefloow.floowmap.R;
+import com.thefloow.floowmap.presenter.Presenter;
 import com.thefloow.floowmap.presenter.util.Util;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -23,8 +30,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private Util util = new Util();
 
+    private final String DEV = "RRS";
+    private final String TAG = DEV + ":" + this.getClass().getSimpleName();
+
+    private Presenter.LocationServiceBinder service;
+    private boolean keepServiceRunning;
+
+    /*## ACTIVITY LIFECYCLE ##*/
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG,"onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -32,8 +48,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
 
         triggerPermissionsCheckUp();
+
+        startAndBindLocationService();
     }
 
+    @Override
+    protected void onStart() {
+        Log.d(TAG,"onStart");
+        super.onStart();
+    }
+
+    @Override
+    protected void onResume() {
+        Log.d(TAG,"onResume");
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        Log.d(TAG,"onPause");
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d(TAG,"onStop");
+        super.onStop();
+    }
+
+    /**
+     * Destroy all fragments and loaders.
+     */
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG,"onDestroy");
+        super.onDestroy();
+    }
 
     /**
      * Manipulates the map once available.
@@ -123,5 +173,45 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 })
                 .show();
     }
+
+    /**
+     * Starts and bind location service without creating a notification
+     */
+    private void startAndBindLocationService() {
+        Bundle bundle = new Bundle();
+        bundle.putBoolean(Presenter.AUTO_CREATE_NOTIFICATION,false);
+
+        Intent serviceIntent = new Intent(this,Presenter.class);
+        serviceIntent.putExtras(bundle);
+
+        this.startService(serviceIntent);
+        bindLocationService(serviceIntent);
+        keepServiceRunning = true;
+//        manageGUI();
+    }
+
+    /**
+     * Binds to location service
+     * @param serviceIntent
+     */
+    private void bindLocationService(Intent serviceIntent) {
+        this.bindService(serviceIntent,serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    /**
+     * Connects to location service.
+     */
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(TAG, "onServiceConnected");
+            MapsActivity.this.service = (Presenter.LocationServiceBinder) service;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.d(TAG,"onServiceDisconnected");
+        }
+    };
 
 }
