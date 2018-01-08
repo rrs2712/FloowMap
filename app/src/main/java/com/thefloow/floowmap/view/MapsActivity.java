@@ -83,6 +83,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onDestroy() {
         Log.d(TAG,"onDestroy");
         super.onDestroy();
+
+        if(keepServiceRunning){
+            service.createNotification(this, this.getClass());
+        }
     }
 
     /**
@@ -113,11 +117,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void triggerPermissionsCheckUp() {
         if (!util.areLocationPermissionsGranted(this)) {
-//            boolean isOkToGoToAppSettings = util.askUserIfWantToGoToAppSettings(this);
-//            if (isOkToGoToAppSettings) {
-//                askUserForLocationPermissions();
-//            }
-
             showLocationPermissionsDialog();
         }
     }
@@ -186,7 +185,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         this.startService(serviceIntent);
         bindLocationService(serviceIntent);
-        keepServiceRunning = true;
+        keepServiceRunning = false;
 //        manageGUI();
     }
 
