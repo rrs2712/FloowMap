@@ -14,6 +14,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -22,19 +23,30 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.thefloow.floowmap.R;
+import com.thefloow.floowmap.presenter.MVPPresenter;
 import com.thefloow.floowmap.presenter.Presenter;
 import com.thefloow.floowmap.presenter.util.Util;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
+//  You cannot instantiate a GoogleMap object directly, rather, you must obtain one from the getMapAsync() method on a MapFragment or MapView
+//  therefore, this object is part of the UI.
+//  https://developers.google.com/android/reference/com/google/android/gms/maps/GoogleMap
     private GoogleMap mMap;
     private Util util = new Util();
 
     private final String DEV = "RRS";
     private final String TAG = DEV + ":" + this.getClass().getSimpleName();
 
-    private Presenter.LocationServiceBinder service;
+//    private Presenter.PresenterBinder service;
     private boolean keepServiceRunning;
+
+    private MVPPresenter presenter;
+    private boolean isServiceBound=false;
+
+    // Makes UI components available for all the activity
+    SupportMapFragment mapFragment;
+    OnMapReadyCallback onMapReadyCallback;
 
     /*## ACTIVITY LIFECYCLE ##*/
 
@@ -43,13 +55,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Log.d(TAG,"onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-
-        triggerPermissionsCheckUp();
 
         startAndBindLocationService();
+
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        // todo: move these lines to onStart
+//        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+//        mapFragment.getMapAsync(this);
+        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        onMapReadyCallback = this;
+
+
+//        triggerPermissionsCheckUp();
     }
 
     @Override
@@ -85,7 +102,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onDestroy();
 
         if(keepServiceRunning){
-            service.createNotification(this, this.getClass());
+//            presenter.createNotification(this, this.getClass());
+            presenter.onActivityDestroy(this, this.getClass());
         }
     }
 
@@ -101,18 +119,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @SuppressLint("MissingPermission")
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        Log.d(TAG,"onMapReady");
 
         mMap = googleMap;
 
+        triggerPermissionsCheckUp();
+
         // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
+//        LatLng sydney = new LatLng(-34, 151);
+        LatLng sydney = presenter.requestModel();
         mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
 
         if (util.areLocationPermissionsGranted(this)) {
             mMap.setMyLocationEnabled(true);
         }
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
     }
 
     private void triggerPermissionsCheckUp() {
@@ -148,10 +169,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        util.validatePermissionsResult(this, requestCode);
+
+        if(util.isOkToUpdateMap(this, requestCode)){
+//            if(isResume==true){
+//                if(isMapReady==true){
+////                    todo: update map here
+            mMap.clear();
+            Toast.makeText(this,"Thanks, permissions granted!", Toast.LENGTH_LONG).show();
+            mapFragment.getMapAsync(onMapReadyCallback);
+//                }
+//            }
+        }else{
+            util.showSimpleDialog(this,
+                    "Your location is not shown",
+                    "Change this later on Settings / Apps / Permissions");
+        }
+
     }
 
     public void showLocationPermissionsDialog() {
+        Log.d(TAG,"showLocationPermissionsDialog");
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
         builder
@@ -167,7 +204,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .setNegativeButton("No, maybe later", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        util.setUserOkWithLocationPermissions(false);
+//                        util.setUserOkWithLocationPermissions(false);
                     }
                 })
                 .show();
@@ -177,14 +214,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Starts and bind location service without creating a notification
      */
     private void startAndBindLocationService() {
+        // todo: maybe move this to the service itself
         Bundle bundle = new Bundle();
         bundle.putBoolean(Presenter.AUTO_CREATE_NOTIFICATION,false);
 
         Intent serviceIntent = new Intent(this,Presenter.class);
         serviceIntent.putExtras(bundle);
 
-        this.startService(serviceIntent);
-        bindLocationService(serviceIntent);
+        bindService(serviceIntent,serviceConnection, Context.BIND_AUTO_CREATE);
+//        this.startService(serviceIntent);
+//        bindLocationService(serviceIntent);
+
+        // todo: maybe move this to the service itself
         keepServiceRunning = false;
 //        manageGUI();
     }
@@ -193,23 +234,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Binds to location service
      * @param serviceIntent
      */
-    private void bindLocationService(Intent serviceIntent) {
-        this.bindService(serviceIntent,serviceConnection, Context.BIND_AUTO_CREATE);
-    }
+//    private void bindLocationService(Intent serviceIntent) {
+//        this.bindService(serviceIntent,serviceConnection, Context.BIND_AUTO_CREATE);
+//    }
 
     /**
      * Connects to location service.
      */
+//    private ServiceConnection serviceConnection2 = new ServiceConnection() {
+//        @Override
+//        public void onServiceConnected(ComponentName name, IBinder service) {
+//            Log.d(TAG, "onServiceConnected");
+//            MapsActivity.this.service = (Presenter.PresenterBinder) service;
+//        }
+//
+//        @Override
+//        public void onServiceDisconnected(ComponentName name) {
+//            Log.d(TAG,"onServiceDisconnected");
+//        }
+//    };
+
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
             Log.d(TAG, "onServiceConnected");
-            MapsActivity.this.service = (Presenter.LocationServiceBinder) service;
+            Presenter.PresenterBinder binder = (Presenter.PresenterBinder) service;
+            presenter = binder.getService();
+            isServiceBound = true;
+
+            mapFragment.getMapAsync(onMapReadyCallback);
         }
 
         @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.d(TAG,"onServiceDisconnected");
+        public void onServiceDisconnected(ComponentName arg0) {
+            Log.d(TAG, "onServiceDisconnected");
+            isServiceBound = false;
         }
     };
 

@@ -17,16 +17,16 @@ public class Util {
     public static final String[] locationPermissions = new String[]{
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION};
-    private boolean isUserOkWithLocationPermissions = false;
+//    private boolean isUserOkWithLocationPermissions = false;
     private boolean isOkGoingToAppSettings = false;
 
-    public boolean isUserOkWithLocationPermissions() {
-        return isUserOkWithLocationPermissions;
-    }
-
-    public void setUserOkWithLocationPermissions(boolean userOkWithLocationPermissions) {
-        isUserOkWithLocationPermissions = userOkWithLocationPermissions;
-    }
+//    public boolean isUserOkWithLocationPermissions() {
+//        return isUserOkWithLocationPermissions;
+//    }
+//
+//    public void setUserOkWithLocationPermissions(boolean userOkWithLocationPermissions) {
+//        isUserOkWithLocationPermissions = userOkWithLocationPermissions;
+//    }
 
     public boolean isOkGoingToAppSettings() {
         return isOkGoingToAppSettings;
@@ -73,9 +73,28 @@ public class Util {
         }
     }
 
-    private void didUserGrantLocationPermissions(Context context) {
+    public boolean isOkToUpdateMap(Context context, int requestCode){
+            if(isRequestCodeOk(requestCode,LOCATION_PERMISSIONS_REQUEST_CODE)){
+                if(areLocationPermissionsGranted(context)){
+                    return true;
+                }
+            }
+        return false;
+    }
+
+    public boolean isRequestCodeOk(int requestCode, int permissionRequested){
+        if(requestCode==permissionRequested){
+            return true;
+        }
+        return false;
+    }
+
+    public void didUserGrantLocationPermissions(Context context) {
+        boolean answer = false;
+
         if (areLocationPermissionsGranted(context)) {
-            isUserOkWithLocationPermissions = true;
+//            todo: delete this method if not needed
+//            isUserOkWithLocationPermissions = true;
         } else {
             showSimpleDialog(context,
                     "Not showing your location",

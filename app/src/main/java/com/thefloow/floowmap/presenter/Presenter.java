@@ -11,6 +11,7 @@ import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.thefloow.floowmap.R;
 import com.thefloow.floowmap.presenter.util.Util;
 
@@ -27,68 +28,69 @@ public class Presenter extends Service implements MVPPresenter {
     public static final String AUTO_CREATE_NOTIFICATION = "create";
 
     // Private variables for binding, handling location manager and listener
-    private final IBinder binder = new LocationServiceBinder();
+    private final IBinder binder = new PresenterBinder();
 
 
     private final String TITLE = "Floow Map";
     private final String CONTENT = "is tracking";
     private final String MSG = TITLE + " is now tracking in background";
 
-    private int myVal = 0;
-
-
     private Util util = new Util();
-
-
-
 
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
-        super.onCreate();
-
-        if(myVal==0){
-            myVal=1;
-            Log.d(TAG, "Set myVal for the very first time=" + myVal);
-        }
-
+//        super.onCreate();
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "onBind");
-        myVal = myVal + 1;
-        Log.d(TAG, "A client has connected therefore myVal=" + myVal);
         return binder;
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnBind");
-        return super.onUnbind(intent);
+//        return super.onUnbind(intent);
+        return true;
     }
 
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
-        super.onDestroy();
+//        super.onDestroy();
     }
 
     @Override
-    public void requestModel() {
+    public LatLng requestModel() {
+        return getFirstPosition();
+    }
 
+    @Override
+    public void onActivityDestroy(Context context, Class<?> cls) {
+        createNotification(context, cls);
     }
 
     /**
-     * Creates an interface between this service and client
+     * Creates an interface between this service (Presenter.java) and this client (MapsActivity.java).
+     * No inter process communication allowed in this version.
      */
-    public class LocationServiceBinder extends Binder {
+    public class PresenterBinder extends Binder {
+
+//        /**
+//         * Provides public access to create a notification
+//         */
+//        public void createNotification(Context context, Class<?> cls){
+//            Presenter.this.createNotification(context, cls);
+//        }
 
         /**
-         * Provides public access to create a notification
+         *
+         * @return Presenter - A reference to a service and, therefore, to it's public methods.
          */
-        public void createNotification(Context context, Class<?> cls){
-            Presenter.this.createNotification(context, cls);
+        public Presenter getService(){
+            return Presenter.this;
         }
     }
 
@@ -96,7 +98,7 @@ public class Presenter extends Service implements MVPPresenter {
      * Creates a notification that cancels itself once the user clicks it. Sorted above the regular
      * notifications.
      */
-    private void createNotification(Context context, Class<?> cls){
+    public void createNotification(Context context, Class<?> cls){
         Log.d(TAG,"createNotification");
 
         Intent mainActivity = new Intent(context, cls);
@@ -117,6 +119,14 @@ public class Presenter extends Service implements MVPPresenter {
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         notificationManager.notify(0,notification);
+    }
+
+    private LatLng getFirstPosition(){
+        Log.d(TAG,"requestFirstPosition");
+
+        // Add a marker in Sydney and move the camera
+        LatLng sydney = new LatLng(-34, 151);
+        return sydney;
     }
 
 }
