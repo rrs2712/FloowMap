@@ -13,6 +13,7 @@ import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.thefloow.floowmap.R;
+import com.thefloow.floowmap.presenter.permission.PermissionsHelper;
 import com.thefloow.floowmap.presenter.util.Util;
 
 /**
@@ -27,26 +28,26 @@ public class Presenter extends Service implements MVPPresenter {
     private final String TAG = DEV + ":" + this.getClass().getSimpleName();
     // Private variables for binding, handling location manager and listener
     private final IBinder binder = new PresenterBinder();
-
-
-    private boolean isTrackingOn = false;
-
-
     private final String TITLE = "Floow Map";
     private final String CONTENT = "is tracking";
     private final String MSG = TITLE + " is now tracking in background";
+    private boolean isTrackingOn = false;
+    private boolean isMapReady = false;
+    private boolean isActivityResumed = false;
+
 
     private Util util = new Util();
+    private PermissionsHelper permHelp;
 
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
-//        super.onCreate();
+        permHelp = new PermissionsHelper();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG,"onStartCommand");
+        Log.d(TAG, "onStartCommand");
         // START_STICKY is used for services that are explicitly started and stopped
         // https://developer.android.com/reference/android/app/Service.html
         return Service.START_STICKY;
@@ -61,7 +62,6 @@ public class Presenter extends Service implements MVPPresenter {
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnBind");
-//        return super.onUnbind(intent);
         // todo: create method to stop service here and in onActivityDestroy
 //        stopSelf();
         return true;
@@ -70,7 +70,6 @@ public class Presenter extends Service implements MVPPresenter {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
-//        super.onDestroy();
     }
 
     @Override
@@ -79,14 +78,34 @@ public class Presenter extends Service implements MVPPresenter {
     }
 
     @Override
+    public void onActivityResumed() {
+        this.isActivityResumed = true;
+    }
+
+    @Override
+    public void onMapReady(Context context) {
+        this.isMapReady = true;
+        triggerPermissionsCheckUp(context);
+    }
+
+    @Override
     public void onActivityDestroy(Context context, Class<?> cls) {
-        if(isTrackingOn){
+        if (isTrackingOn) {
             createNotification(context, cls);
-        }else {
+        } else {
             stopSelf();
         }
 
     }
+
+    //    ## PERMISSIONS RELATED METHODS - BEGIN ##
+
+    private void triggerPermissionsCheckUp(Context context) {
+        if (!permHelp.areLocationPermissionsGranted(context)) {
+            permHelp.showLocationPermissionsDialog(context);
+        }
+    }
+    //    ## PERMISSIONS RELATED METHODS - END ##
 
     /**
      * Creates a notification that cancels itself once the user clicks it. Sorted above the regular

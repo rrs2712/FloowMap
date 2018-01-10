@@ -5,4 +5,6 @@ package com.thefloow.floowmap.view;
  */
 
 public interface MVPView {
+
+//    void onPermissionGranted(boolean isGranted);
 }

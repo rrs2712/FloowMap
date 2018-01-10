@@ -11,4 +11,6 @@ import com.google.android.gms.maps.model.LatLng;
 public interface MVPPresenter {
     LatLng requestModel();
     void onActivityDestroy(Context context, Class<?> cls);
+    void onMapReady(Context context);
+    void onActivityResumed();
 }
