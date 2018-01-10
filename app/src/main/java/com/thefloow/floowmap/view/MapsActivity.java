@@ -110,7 +110,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
 
         // This will trigger permissions check-up in the service
-        presenter.onMapReady(this);
+        presenter.onMapReady(this, this);
 
         // todo: don't forget to remove these lines after testing
         LatLng london = presenter.requestModel();
@@ -187,4 +187,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     };
 
+    @Override
+    public void onNewLocation(LatLng latLng) {
+        Log.d(TAG, "onNewLocation");
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f));
+    }
 }

@@ -13,9 +13,7 @@ import android.util.Log;
  * Created by rrs27 on 2018-01-10.
  */
 
-public class PermissionsHelper /*extends FragmentActivity*/ {
-
-//    private MVPPresenter presenter;
+public class PermissionsHelper {
 
     private final String DEV = "RRS";
     private final String TAG = DEV + ":" + this.getClass().getSimpleName();
@@ -29,21 +27,18 @@ public class PermissionsHelper /*extends FragmentActivity*/ {
     public static final String HELP_DIALOG_TITLE = "Your location is not shown";
     public static final String HELP_DIALOG_MSG ="Change this on Settings / Apps / Floow Map / Permissions";
     public static final String HELP_DIALOG_NEUTRAL_BTN = "Ok";
-
     public static final String PERMISSION_GRANTED_MSG = "Permissions granted, thank you!";
 
-//    public PermissionsHelper(MVPPresenter presenter) {
-//        Log.d(TAG,"PermissionsHelper");
-//        this.presenter = presenter;
-//    }
+    public static final String PERMISSION_DIALOG_TITLE = "Permissions Request";
+    public static final String PERMISSION_DIALOG_MSG ="Show your current location?";
+    public static final String PERMISSION_DIALOG_YES_BTN = "Yes, go to settings";
+    public static final String PERMISSION_DIALOG_NO_BTN = "No, maybe later";
 
     public static boolean areLocationPermissionsGranted(Context context) {
-
         if (isCoarseLocationPermissionGranted(context) == true &&
                 isFineLocationPermissionGranted(context) == true) {
             return true;
         }
-
         return false;
     }
 
@@ -54,7 +49,6 @@ public class PermissionsHelper /*extends FragmentActivity*/ {
         }
         return false;
     }
-
 
     public static boolean isFineLocationPermissionGranted(Context context) {
         if (ActivityCompat.checkSelfPermission(context,
@@ -67,23 +61,21 @@ public class PermissionsHelper /*extends FragmentActivity*/ {
     public void showLocationPermissionsDialog(final Context context) {
         Log.d(TAG,"showLocationPermissionsDialog");
 
-        // todo: consider using this class context instead of method
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
 
         builder
                 .setCancelable(false)
-                .setTitle("Permissions Request")
-                .setMessage("Show your current location?")
-                .setPositiveButton("Yes, go to settings", new DialogInterface.OnClickListener() {
+                .setTitle(PERMISSION_DIALOG_TITLE)
+                .setMessage(PERMISSION_DIALOG_MSG)
+                .setPositiveButton(PERMISSION_DIALOG_YES_BTN, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         askUserForLocationPermissions(context);
                     }
                 })
-                .setNegativeButton("No, maybe later", new DialogInterface.OnClickListener() {
+                .setNegativeButton(PERMISSION_DIALOG_NO_BTN, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-//                        util.setUserOkWithLocationPermissions(false);
                     }
                 })
                 .show();
@@ -97,20 +89,6 @@ public class PermissionsHelper /*extends FragmentActivity*/ {
                 locationPermissions,
                 LOCATION_PERMISSIONS_REQUEST_CODE);
     }
-
-//    @Override
-//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-//
-//        if(isLocationPermissionGranted(this, requestCode)){
-//            presenter.onReceivePermissionGranted(true);
-//        }else{
-//            presenter.onReceivePermissionGranted(false);
-//            showHelpDialog(this,
-//                    "Your location is not shown",
-//                    "Change this later on Settings / Apps / Permissions");
-//        }
-//    }
 
     public boolean isLocationPermissionGranted(Context context, int requestCode){
         if(isRequestCodeOk(requestCode,LOCATION_PERMISSIONS_REQUEST_CODE)){
