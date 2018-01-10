@@ -39,7 +39,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final String TAG = DEV + ":" + this.getClass().getSimpleName();
 
 //    private Presenter.PresenterBinder service;
-    private boolean keepServiceRunning;
+//    private boolean keepServiceRunning;
 
     private MVPPresenter presenter;
     private boolean isServiceBound=false;
@@ -59,14 +59,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         startAndBindLocationService();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        // todo: move these lines to onStart
 //        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 //        mapFragment.getMapAsync(this);
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         onMapReadyCallback = this;
-
-
-//        triggerPermissionsCheckUp();
     }
 
     @Override
@@ -101,9 +97,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Log.d(TAG,"onDestroy");
         super.onDestroy();
 
-        if(keepServiceRunning){
-//            presenter.createNotification(this, this.getClass());
+//        if(keepServiceRunning){
+        if(isServiceBound){
             presenter.onActivityDestroy(this, this.getClass());
+            unbindService(serviceConnection);
+            isServiceBound= false;
         }
     }
 
@@ -127,9 +125,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Add a marker in Sydney and move the camera
 //        LatLng sydney = new LatLng(-34, 151);
-        LatLng sydney = presenter.requestModel();
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        LatLng london = presenter.requestModel();
+        mMap.addMarker(new MarkerOptions().position(london).title("Marker in London"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(london));
 
         if (util.areLocationPermissionsGranted(this)) {
             mMap.setMyLocationEnabled(true);
@@ -175,7 +173,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                if(isMapReady==true){
 ////                    todo: update map here
             mMap.clear();
-            Toast.makeText(this,"Thanks, permissions granted!", Toast.LENGTH_LONG).show();
+            Toast.makeText(this,"Permissions granted, thanks!", Toast.LENGTH_LONG).show();
             mapFragment.getMapAsync(onMapReadyCallback);
 //                }
 //            }
@@ -214,45 +212,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Starts and bind location service without creating a notification
      */
     private void startAndBindLocationService() {
-        // todo: maybe move this to the service itself
-        Bundle bundle = new Bundle();
-        bundle.putBoolean(Presenter.AUTO_CREATE_NOTIFICATION,false);
+//        // todo: maybe move this to the service itself
+//        Bundle bundle = new Bundle();
+//        bundle.putBoolean(Presenter.AUTO_CREATE_NOTIFICATION,false);
 
         Intent serviceIntent = new Intent(this,Presenter.class);
-        serviceIntent.putExtras(bundle);
+//        serviceIntent.putExtras(bundle);
 
+        // triggers onStartCommand
+        startService(serviceIntent);
         bindService(serviceIntent,serviceConnection, Context.BIND_AUTO_CREATE);
-//        this.startService(serviceIntent);
-//        bindLocationService(serviceIntent);
 
         // todo: maybe move this to the service itself
-        keepServiceRunning = false;
-//        manageGUI();
+//        keepServiceRunning = false;
     }
 
-    /**
-     * Binds to location service
-     * @param serviceIntent
-     */
-//    private void bindLocationService(Intent serviceIntent) {
-//        this.bindService(serviceIntent,serviceConnection, Context.BIND_AUTO_CREATE);
-//    }
-
-    /**
-     * Connects to location service.
-     */
-//    private ServiceConnection serviceConnection2 = new ServiceConnection() {
-//        @Override
-//        public void onServiceConnected(ComponentName name, IBinder service) {
-//            Log.d(TAG, "onServiceConnected");
-//            MapsActivity.this.service = (Presenter.PresenterBinder) service;
-//        }
-//
-//        @Override
-//        public void onServiceDisconnected(ComponentName name) {
-//            Log.d(TAG,"onServiceDisconnected");
-//        }
-//    };
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override

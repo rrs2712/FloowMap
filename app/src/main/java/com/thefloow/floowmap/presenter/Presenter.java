@@ -21,14 +21,15 @@ import com.thefloow.floowmap.presenter.util.Util;
 
 public class Presenter extends Service implements MVPPresenter {
 
-    private final String DEV = "RRS";
-    private final String TAG = DEV + ":" + this.getClass().getSimpleName();
-
     // Public access variables, especially regarding user preferences
     public static final String AUTO_CREATE_NOTIFICATION = "create";
-
+    private final String DEV = "RRS";
+    private final String TAG = DEV + ":" + this.getClass().getSimpleName();
     // Private variables for binding, handling location manager and listener
     private final IBinder binder = new PresenterBinder();
+
+
+    private boolean isTrackingOn = false;
 
 
     private final String TITLE = "Floow Map";
@@ -44,6 +45,14 @@ public class Presenter extends Service implements MVPPresenter {
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG,"onStartCommand");
+        // START_STICKY is used for services that are explicitly started and stopped
+        // https://developer.android.com/reference/android/app/Service.html
+        return Service.START_STICKY;
+    }
+
+    @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "onBind");
         return binder;
@@ -53,6 +62,8 @@ public class Presenter extends Service implements MVPPresenter {
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnBind");
 //        return super.onUnbind(intent);
+        // todo: create method to stop service here and in onActivityDestroy
+//        stopSelf();
         return true;
     }
 
@@ -69,45 +80,28 @@ public class Presenter extends Service implements MVPPresenter {
 
     @Override
     public void onActivityDestroy(Context context, Class<?> cls) {
-        createNotification(context, cls);
-    }
-
-    /**
-     * Creates an interface between this service (Presenter.java) and this client (MapsActivity.java).
-     * No inter process communication allowed in this version.
-     */
-    public class PresenterBinder extends Binder {
-
-//        /**
-//         * Provides public access to create a notification
-//         */
-//        public void createNotification(Context context, Class<?> cls){
-//            Presenter.this.createNotification(context, cls);
-//        }
-
-        /**
-         *
-         * @return Presenter - A reference to a service and, therefore, to it's public methods.
-         */
-        public Presenter getService(){
-            return Presenter.this;
+        if(isTrackingOn){
+            createNotification(context, cls);
+        }else {
+            stopSelf();
         }
+
     }
 
     /**
      * Creates a notification that cancels itself once the user clicks it. Sorted above the regular
      * notifications.
      */
-    public void createNotification(Context context, Class<?> cls){
-        Log.d(TAG,"createNotification");
+    public void createNotification(Context context, Class<?> cls) {
+        Log.d(TAG, "createNotification");
 
         Intent mainActivity = new Intent(context, cls);
-        int requestCode =0;
-        int flags=0;
-        PendingIntent pi = PendingIntent.getActivity(context,requestCode,mainActivity,flags);
+        int requestCode = 0;
+        int flags = 0;
+        PendingIntent pi = PendingIntent.getActivity(context, requestCode, mainActivity, flags);
 
         String channelId = "default_channel";
-        Notification notification = new NotificationCompat.Builder(this,channelId)
+        Notification notification = new NotificationCompat.Builder(this, channelId)
                 .setContentTitle(TITLE)
                 .setContentText(CONTENT)
                 .setTicker(MSG)
@@ -118,15 +112,29 @@ public class Presenter extends Service implements MVPPresenter {
                 .build();
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        notificationManager.notify(0,notification);
+        notificationManager.notify(0, notification);
     }
 
-    private LatLng getFirstPosition(){
-        Log.d(TAG,"requestFirstPosition");
+    private LatLng getFirstPosition() {
+        Log.d(TAG, "requestFirstPosition");
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        return sydney;
+        // Add a marker in London and move the camera
+        LatLng london = new LatLng(51.5, 0);
+        return london;
+    }
+
+    /**
+     * Creates an interface between this service (Presenter.java) and this client (MapsActivity.java).
+     * No inter process communication allowed in this version.
+     */
+    public class PresenterBinder extends Binder {
+
+        /**
+         * @return Presenter - A reference to a service and, therefore, to it's public methods.
+         */
+        public Presenter getService() {
+            return Presenter.this;
+        }
     }
 
 }
