@@ -20,6 +20,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.thefloow.floowmap.R;
 import com.thefloow.floowmap.presenter.MVPPresenter;
@@ -150,20 +151,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (PermissionsHelper.areLocationPermissionsGranted(this)) {
             mMap.setMyLocationEnabled(true);
-
-
-//            List<LatLng> latLngs = new ArrayList<>();
-//            latLngs.add(new LatLng(51.5, 0));
-//            latLngs.add(new LatLng(52.5, 1));
-//            latLngs.add(new LatLng(53.5, 2));
-//
-//
-//            PolylineOptions polyline = new PolylineOptions()
-//                    .addAll(latLngs)
-//                    .width(5f)
-//                    .geodesic(true);
-//            mMap.clear();
-//            mMap.addPolyline(polyline);
         }
     }
 
@@ -236,12 +223,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onDrawJourney(List<LatLng> latLngs) {
         Log.d(TAG, "onDrawJourney = " + latLngs.size() );
 
+        //todo: validate in presenter send a list with at least 1 element
+
+        LatLng latLngIni = latLngs.get(0);
+        MarkerOptions startLocation = new MarkerOptions()
+                .position(latLngIni)
+                .title("Start Point");
+
         PolylineOptions polyline = new PolylineOptions()
                 .addAll(latLngs)
                 .width(5f)
                 .color(Color.BLUE)
                 .geodesic(true);
         mMap.clear();
+        mMap.addMarker(startLocation);
         mMap.addPolyline(polyline);
     }
 

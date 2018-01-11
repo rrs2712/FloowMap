@@ -7,6 +7,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Binder;
@@ -16,7 +18,9 @@ import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.thefloow.floowmap.R;
+import com.thefloow.floowmap.model.bo.DBJourney;
 import com.thefloow.floowmap.model.bo.Journey;
+import com.thefloow.floowmap.model.db.DBHelper;
 import com.thefloow.floowmap.presenter.Location.LocationListenerImpl;
 import com.thefloow.floowmap.presenter.permission.PermissionsHelper;
 import com.thefloow.floowmap.presenter.util.Util;
@@ -42,10 +46,9 @@ public class Presenter extends Service implements MVPPresenter {
     // Private variables representing retrieving location parameters
     private final long MIN_TIME_LOC_UPDATES_MILLI_SECS = 1000;
     private final float MIN_DIST_LOC_UPDATES_METERS = 5f;
-//    // Shared preferences
-//    private final String SHARED_PREF = "com.thefloow.floowmap.presenter";
-//    private final String IS_JOURNEY_ON = "keyToRetrieveStatusOfPreviousJourney";
-//    private final String JOURNEY_ID = "keyToRetrievePreviousJourneyId";
+    // Database
+    private DBHelper dbHelper;
+    private SQLiteDatabase db;
     //
     MVPView mvpView;
     private LocationManager locationManager;
@@ -61,6 +64,8 @@ public class Presenter extends Service implements MVPPresenter {
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
+        this.dbHelper = new DBHelper(this.getApplicationContext());
+        this.db = dbHelper.getWritableDatabase();
     }
 
     private void recoverPreviousJourneyIfExisted() {
@@ -301,6 +306,13 @@ public class Presenter extends Service implements MVPPresenter {
         Log.d(TAG,"isJourneyOn=" + isJourneyOn);
 
         journey = manageJourney(isJourneyOn);
+        printLastJourney();
+    }
+
+    private void printLastJourney(){
+        Cursor cursor = dbHelper.getLastJourney();
+        DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
+        Log.d(TAG,dbJourney.toString());
     }
 
     /**
@@ -310,18 +322,59 @@ public class Presenter extends Service implements MVPPresenter {
      * @return
      */
     private Journey manageJourney(boolean isNewJourney){
-        if(isNewJourney){
-            //todo:implement call to the DB
-            int fakeId = -1;
-            List<LatLng> latLngs = new ArrayList<>();
+        // This query will return a single row or none
+        Cursor cursor = dbHelper.getLastJourney();
 
-            latLngs.add(new LatLng(51.5, 0));
-            latLngs.add(new LatLng(52.5, 1));
-            latLngs.add(new LatLng(53.5, 2));
+        //todo: delete this
+        int fakeId = -1;
+        List<LatLng> latLngs = new ArrayList<>();
+
+        if(isNewJourney){
+            // Records on start
+            Log.d(TAG,"Journey starting");
+
+            // If true we'll insert the very first record
+            if (isTheFirstJourneyEver(cursor)){
+                saveVeryFirstJourney();
+            }else{
+                int lastJourneyId = getFieldFromCursor(DBHelper.JOURNEY_NAME,cursor);
+                int newJourneyId = lastJourneyId + 1;
+                long unixTime = System.currentTimeMillis();
+                dbHelper.saveJourney(newJourneyId,unixTime,DBHelper.JOURNEY_BEGINS);
+            }
 
             return new Journey(fakeId,latLngs);
+        } else {
+            // Records on finish
+            Log.d(TAG,"Journey Finishing");
+            int lastJourneyId = getFieldFromCursor(DBHelper.JOURNEY_NAME,cursor);
+            long unixTime = System.currentTimeMillis();
+            dbHelper.saveJourney(lastJourneyId,unixTime,DBHelper.JOURNEY_ENDS);
         }
         return null;
+    }
+
+    private int getFieldFromCursor(String field, Cursor cursor){
+        while (cursor.moveToNext()){
+            int colIndex = cursor.getColumnIndex(field);
+            return cursor.getInt(colIndex);
+        }
+        return -1;
+    }
+
+    private boolean isTheFirstJourneyEver(Cursor cursor){
+        Log.d(TAG,"isTheFirstJourneyEver");
+        if (cursor.getCount() == 0){
+            return true;
+        }
+        return false;
+    }
+
+    private void saveVeryFirstJourney(){
+        Log.d(TAG,"saveVeryFirstJourney");
+        int firstName = 1;
+        long unixTime = System.currentTimeMillis();
+        dbHelper.saveJourney(firstName,unixTime,DBHelper.JOURNEY_BEGINS);
     }
 
     /**
