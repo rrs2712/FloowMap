@@ -16,10 +16,14 @@ import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.thefloow.floowmap.R;
+import com.thefloow.floowmap.model.bo.Journey;
 import com.thefloow.floowmap.presenter.Location.LocationListenerImpl;
 import com.thefloow.floowmap.presenter.permission.PermissionsHelper;
 import com.thefloow.floowmap.presenter.util.Util;
 import com.thefloow.floowmap.view.MVPView;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by rrs27 on 2018-01-07.
@@ -51,6 +55,7 @@ public class Presenter extends Service implements MVPPresenter {
     private PermissionsHelper permHelp;
     // Controls whether to track-and-save a journey or not
     private boolean isJourneyOn = false;
+    private Journey journey;
     private int journeyId = -1;
 
     @Override
@@ -88,12 +93,19 @@ public class Presenter extends Service implements MVPPresenter {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
-        saveJourneyInfoIfExists();
+        // Things to do before destroying the service
+        saveJourney();
         stopLocationManager(this);
     }
 
-    private void saveJourneyInfoIfExists() {
-        Log.d(TAG,"saveJourneyInfoIfExists");
+    private void saveJourney() {
+        Log.d(TAG,"saveJourney");
+        if(!isJourneyOn){ return; }
+        //todo: implement this method
+    }
+
+    private void saveJourneyLocation(Journey journey) {
+        if(!isJourneyOn){ return; }
         //todo: implement this method
     }
 
@@ -255,17 +267,61 @@ public class Presenter extends Service implements MVPPresenter {
     public void onLocationReceived(Location location) {
         Log.d(TAG, "onLocationReceived");
 
-        // If map is not ready then do no send it data
-        if(!isMapReady){return;}
-
         LatLng latLng = Util.getLatLngFrom(location);
-        mvpView.onNewLocation(latLng);
+
+        if(isJourneyOn){
+            journey.getLatLngs().add(latLng);
+            saveJourneyLocation(journey);
+        }
+
+        // If map is ready then do no send location to view
+        if(isMapReady){
+            if(isJourneyOn){
+                mvpView.onDrawJourney(journey.getLatLngs());
+            }
+
+            mvpView.onNewLocation(latLng);
+        }
     }
 
+
+
+    /**
+     * This method allows:
+     *      to draw the user's journey in the map;
+     *      the service to know if the trip should be recorded;
+     *      if the activity is destroyed:
+     *          runs tracking in background;
+     *          creates a notification icon in the bar;
+     * The initial state is journey off.
+     */
     @Override
     public void toggleJourneyOnOff() {
         isJourneyOn = !isJourneyOn;
         Log.d(TAG,"isJourneyOn=" + isJourneyOn);
+
+        journey = manageJourney(isJourneyOn);
+    }
+
+    /**
+     * Sets the journey to null if false, otherwise, returns a brand new
+     * Journey object
+     * @param isNewJourney
+     * @return
+     */
+    private Journey manageJourney(boolean isNewJourney){
+        if(isNewJourney){
+            //todo:implement call to the DB
+            int fakeId = -1;
+            List<LatLng> latLngs = new ArrayList<>();
+
+            latLngs.add(new LatLng(51.5, 0));
+            latLngs.add(new LatLng(52.5, 1));
+            latLngs.add(new LatLng(53.5, 2));
+
+            return new Journey(fakeId,latLngs);
+        }
+        return null;
     }
 
     /**

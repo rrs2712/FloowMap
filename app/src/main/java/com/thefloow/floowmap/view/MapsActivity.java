@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
@@ -19,10 +20,13 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.thefloow.floowmap.R;
 import com.thefloow.floowmap.presenter.MVPPresenter;
 import com.thefloow.floowmap.presenter.Presenter;
 import com.thefloow.floowmap.presenter.permission.PermissionsHelper;
+
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, MVPView {
 
@@ -146,6 +150,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (PermissionsHelper.areLocationPermissionsGranted(this)) {
             mMap.setMyLocationEnabled(true);
+
+
+//            List<LatLng> latLngs = new ArrayList<>();
+//            latLngs.add(new LatLng(51.5, 0));
+//            latLngs.add(new LatLng(52.5, 1));
+//            latLngs.add(new LatLng(53.5, 2));
+//
+//
+//            PolylineOptions polyline = new PolylineOptions()
+//                    .addAll(latLngs)
+//                    .width(5f)
+//                    .geodesic(true);
+//            mMap.clear();
+//            mMap.addPolyline(polyline);
         }
     }
 
@@ -215,15 +233,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     };
 
     @Override
-    public void onNewLocation(LatLng latLng) {
-        Log.d(TAG, "onNewLocation");
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f));
+    public void onDrawJourney(List<LatLng> latLngs) {
+        Log.d(TAG, "onDrawJourney = " + latLngs.size() );
+
+        PolylineOptions polyline = new PolylineOptions()
+                .addAll(latLngs)
+                .width(5f)
+                .color(Color.BLUE)
+                .geodesic(true);
+        mMap.clear();
+        mMap.addPolyline(polyline);
     }
 
+    @Override
+    public void onNewLocation(LatLng latLng) {
+        Log.d(TAG, "onNewLocation");
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18f));
+    }
+
+    // todo: delete this method if se second layout is not used
     public void onTrackSwitch(View view){
         Log.d(TAG,"onTrackSwitch");
         presenter.toggleJourneyOnOff();
-//        Toast.makeText(this,"Switch on/off",Toast.LENGTH_SHORT).show();
+    }
+
+    public void onJourneySwitch(View view){
+        Log.d(TAG,"onJourneySwitch");
+        presenter.toggleJourneyOnOff();
     }
 
     @Override
