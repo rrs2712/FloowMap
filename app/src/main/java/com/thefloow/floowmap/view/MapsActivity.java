@@ -11,6 +11,7 @@ import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -18,7 +19,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.thefloow.floowmap.R;
 import com.thefloow.floowmap.presenter.MVPPresenter;
 import com.thefloow.floowmap.presenter.Presenter;
@@ -47,13 +47,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG,"onCreate");
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
+//        setContentView(R.layout.activity_maps);
 
         setAndBindService();
 
         // Obtain the SupportMapFragment and set both as class variables
-        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+//        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+
+        setLayout(1);
+
         onMapReadyCallback = this;
+    }
+
+    //todo:delete me at the end
+    private void setLayout(int whichOne){
+        switch (whichOne){
+            case 2:
+                setContentView(R.layout.activity_map_n_drawer);
+                mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
+                break;
+            case 1:
+            default:
+                setContentView(R.layout.activity_maps);
+                mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+                break;
+        }
+        Log.d(TAG,"Using layout: " + whichOne);
     }
 
     @Override
@@ -72,6 +91,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onPause() {
         Log.d(TAG,"onPause");
         super.onPause();
+        presenter.onActivityPaused();
+    }
+
+    @Override
+    protected void onRestart() {
+        Log.d(TAG,"onRestart");
+        super.onRestart();
+        presenter.onActivityRestarted();
     }
 
     @Override
@@ -113,9 +140,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         presenter.onMapReady(this, this);
 
         // todo: don't forget to remove these lines after testing
-        LatLng london = presenter.requestModel();
-        mMap.addMarker(new MarkerOptions().position(london).title("Marker in London"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(london));
+//        LatLng london = presenter.requestModel();
+//        mMap.addMarker(new MarkerOptions().position(london).title("Marker in London"));
+//        mMap.moveCamera(CameraUpdateFactory.newLatLng(london));
 
         if (PermissionsHelper.areLocationPermissionsGranted(this)) {
             mMap.setMyLocationEnabled(true);
@@ -191,5 +218,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onNewLocation(LatLng latLng) {
         Log.d(TAG, "onNewLocation");
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f));
+    }
+
+    public void onTrackSwitch(View view){
+        Log.d(TAG,"onTrackSwitch");
+        presenter.toggleJourneyOnOff();
+//        Toast.makeText(this,"Switch on/off",Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRecoveryState(boolean isJourneyOn) {
+        Log.d(TAG,"onRecoveryState");
+//        Switch aSwitch = (Switch) findViewById(R.id.track_switch);
+//        aSwitch.setChecked(isJourneyOn);
     }
 }

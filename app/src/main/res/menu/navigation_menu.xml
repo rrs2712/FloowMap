@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menu_track_switch"
+        android:title="Track switch"/>
+
+    <item
+        android:id="@+id/menu_view_records"
+        android:title="View Records"/>
+</menu>

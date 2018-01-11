@@ -8,4 +8,5 @@ import com.google.android.gms.maps.model.LatLng;
 
 public interface MVPView {
     void onNewLocation(LatLng latLng);
+    void onRecoveryState(boolean isJourneyOn);
 }

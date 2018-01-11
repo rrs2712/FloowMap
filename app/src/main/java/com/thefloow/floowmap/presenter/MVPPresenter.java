@@ -14,6 +14,9 @@ public interface MVPPresenter {
     LatLng requestModel();
     void onActivityDestroy(Context context, Class<?> cls);
     void onMapReady(Context context, MVPView view);
-    void onActivityResumed();
+//    void onActivityResumed();
+    void onActivityPaused();
+    void onActivityRestarted();
     void onLocationReceived(Location location);
+    void toggleJourneyOnOff();
 }

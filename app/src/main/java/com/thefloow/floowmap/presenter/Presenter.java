@@ -32,36 +32,42 @@ public class Presenter extends Service implements MVPPresenter {
     private final String TAG = DEV + ":" + this.getClass().getSimpleName();
     // Private variables for binding, handling location manager and listener
     private final IBinder binder = new PresenterBinder();
-    private LocationManager locationManager;
-    private LocationListenerImpl locationListener;
-
     private final String TITLE = "Floow Map";
     private final String CONTENT = "is tracking";
     private final String MSG = TITLE + " is now tracking in background";
-
-    private boolean isTrackingOn = false;
-    private boolean isMapReady = false;
-    private boolean isActivityResumed = false;
-
     // Private variables representing retrieving location parameters
     private final long MIN_TIME_LOC_UPDATES_MILLI_SECS = 1000;
     private final float MIN_DIST_LOC_UPDATES_METERS = 5f;
-
+//    // Shared preferences
+//    private final String SHARED_PREF = "com.thefloow.floowmap.presenter";
+//    private final String IS_JOURNEY_ON = "keyToRetrieveStatusOfPreviousJourney";
+//    private final String JOURNEY_ID = "keyToRetrievePreviousJourneyId";
     //
     MVPView mvpView;
-
-    private Util util = new Util();
+    private LocationManager locationManager;
+    private LocationListenerImpl locationListener;
+    //    private boolean isTrackingOn = false;
+    private boolean isMapReady = false;
     private PermissionsHelper permHelp;
+    // Controls whether to track-and-save a journey or not
+    private boolean isJourneyOn = false;
+    private int journeyId = -1;
 
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
-        permHelp = new PermissionsHelper();
+    }
+
+    private void recoverPreviousJourneyIfExisted() {
+        Log.d(TAG,"recoverPreviousJourneyIfExisted");
+        // todo: implement this method
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand");
+        permHelp = new PermissionsHelper();
+        recoverPreviousJourneyIfExisted();
         // START_STICKY is used for services that are explicitly started and stopped
         // https://developer.android.com/reference/android/app/Service.html
         return Service.START_STICKY;
@@ -76,15 +82,19 @@ public class Presenter extends Service implements MVPPresenter {
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnBind");
-        // todo: create method to stop service here and in onActivityDestroy
-//        stopSelf();
         return true;
     }
 
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+        saveJourneyInfoIfExists();
         stopLocationManager(this);
+    }
+
+    private void saveJourneyInfoIfExists() {
+        Log.d(TAG,"saveJourneyInfoIfExists");
+        //todo: implement this method
     }
 
     @Override
@@ -92,27 +102,55 @@ public class Presenter extends Service implements MVPPresenter {
         return getFirstPosition();
     }
 
-    @Override
-    public void onActivityResumed() {
-        this.isActivityResumed = true;
-    }
 
+
+    /**
+     * Call this method in activities when all of the following is satisfied:
+     *      activity is onResume
+     *      activity is bound to this service
+     *      map view ready.
+     * It basically means all is working and prepared to receive instructions from
+     * the service
+     * @param context
+     * @param mvpView
+     */
     @Override
     public void onMapReady(Context context, MVPView mvpView) {
         this.isMapReady = true;
-        triggerPermissionsCheckUp(context);
-        startLocationManager(this);
         this.mvpView = mvpView;
+
+        triggerPermissionsCheckUp(context);
+
+        // This method will self-check permissions in case they're not granted by the time
+        // it is called
+        startLocationManager(this);
+
+        // todo: In case of exist, this method will send previous journey state to the activity
+//        this.mvpView.onRecoveryState(isJourneyOn);
     }
 
     @Override
+    public void onActivityPaused() {
+        this.isMapReady = false;
+        Log.d(TAG,"onActivityPaused");
+    }
+
+    @Override
+    public void onActivityRestarted() {
+        this.isMapReady = true;
+        Log.d(TAG,"onActivityRestarted");
+    }
+
+
+
+
+    @Override
     public void onActivityDestroy(Context context, Class<?> cls) {
-        if (isTrackingOn) {
+        if (isJourneyOn) {
             createNotification(context, cls);
         } else {
             stopSelf();
         }
-
     }
 
     //    ## PERMISSIONS RELATED METHODS - BEGIN ##
@@ -151,12 +189,83 @@ public class Presenter extends Service implements MVPPresenter {
         notificationManager.notify(0, notification);
     }
 
+    // todo: delete me after testing
     private LatLng getFirstPosition() {
         Log.d(TAG, "requestFirstPosition");
 
         // Add a marker in London and move the camera
         LatLng london = new LatLng(51.5, 0);
         return london;
+    }
+
+    /**
+     * Stop requesting updates from the location manager
+     */
+    private void stopLocationManager(Context context) {
+        Log.d(TAG, "stopLocationManager");
+
+        if (!permHelp.areLocationPermissionsGranted(context)) {
+            Log.d(TAG, "LocationManager is stopped due to permissions denied.");
+            return;
+        }
+
+        try {
+            locationManager.removeUpdates(locationListener);
+        } catch (IllegalArgumentException e) {
+            Log.d(TAG, e.toString()); // This exception: no worries, listener was already null
+        }
+    }
+
+
+    // ## Location Tracking ##
+
+    /**
+     * Start requesting updates from the location manager. Instantiates location manager and assigns
+     * a listener.
+     */
+    @SuppressLint("MissingPermission")
+    private void startLocationManager(Context context) {
+        Log.d(TAG, "startLocationManager");
+
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        locationListener = new LocationListenerImpl(this);
+
+        if (!permHelp.areLocationPermissionsGranted(context)) {
+            Log.d(TAG, "LocationManager is stopped due to permissions denied.");
+            return;
+        }
+
+        try {
+            locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    MIN_TIME_LOC_UPDATES_MILLI_SECS,
+                    MIN_DIST_LOC_UPDATES_METERS,
+                    locationListener
+            );
+        } catch (IllegalArgumentException iae) {
+            Log.d(TAG, "Provider is null or doesn't exist on this device or listener is null");
+        } catch (SecurityException se) {
+            Log.d(TAG, "No suitable permission is present");
+        } catch (RuntimeException re) {
+            Log.d(TAG, "The calling thread has no Looper");
+        }
+    }
+
+    @Override
+    public void onLocationReceived(Location location) {
+        Log.d(TAG, "onLocationReceived");
+
+        // If map is not ready then do no send it data
+        if(!isMapReady){return;}
+
+        LatLng latLng = Util.getLatLngFrom(location);
+        mvpView.onNewLocation(latLng);
+    }
+
+    @Override
+    public void toggleJourneyOnOff() {
+        isJourneyOn = !isJourneyOn;
+        Log.d(TAG,"isJourneyOn=" + isJourneyOn);
     }
 
     /**
@@ -171,84 +280,5 @@ public class Presenter extends Service implements MVPPresenter {
         public Presenter getService() {
             return Presenter.this;
         }
-    }
-
-
-    // ## Location Tracking ##
-
-    /**
-     * Stop requesting updates from the location manager
-     */
-    private void stopLocationManager(Context context) {
-        Log.d(TAG,"stopLocationManager");
-
-//        // IDE auto generated code for access permissions
-//        if (ActivityCompat.checkSelfPermission(
-//                this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-//                ActivityCompat.checkSelfPermission(
-//                        this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            Log.d(CLA,"Location permissions denied, can't stop LocationManager");
-//            return;
-//        }
-
-        if(!permHelp.areLocationPermissionsGranted(context)){
-            Log.d(TAG,"Location permissions denied, can't stop LocationManager");
-            return;
-        }
-
-        try {
-            locationManager.removeUpdates(locationListener);
-        } catch (IllegalArgumentException e) {
-            Log.d(TAG,e.toString());
-            Log.d(TAG,"No worries, listener was already null.");
-        }
-    }
-
-    /**
-     * Start requesting updates from the location manager. Instantiates location manager and assigns
-     * a listener.
-     */
-    @SuppressLint("MissingPermission")
-    private void startLocationManager(Context context) {
-        Log.d(TAG,"startLocationManager");
-
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        locationListener = new LocationListenerImpl(this);
-
-//        // IDE auto generated code for access permissions
-//        if (ActivityCompat.checkSelfPermission(
-//                this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-//                ActivityCompat.checkSelfPermission(
-//                        this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            Log.d(CLA,"Location permissions denied, can't start LocationManager");
-//            return;
-//        }
-
-        if(!permHelp.areLocationPermissionsGranted(context)){
-            Log.d(TAG,"Location permissions denied, can't stop LocationManager");
-            return;
-        }
-
-        try {
-            locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    MIN_TIME_LOC_UPDATES_MILLI_SECS,
-                    MIN_DIST_LOC_UPDATES_METERS,
-                    locationListener
-            );
-        } catch (IllegalArgumentException iae) {
-            Log.d(TAG,"Provider is null or doesn't exist on this device or listener is null");
-        } catch (SecurityException se) {
-            Log.d(TAG,"No suitable permission is present");
-        } catch (RuntimeException re) {
-            Log.d(TAG,"The calling thread has no Looper");
-        }
-    }
-
-    @Override
-    public void onLocationReceived(Location location) {
-        Log.d(TAG,"onLocationReceived");
-        LatLng latLng = util.getLatLngFrom(location);
-        mvpView.onNewLocation(latLng);
     }
 }
