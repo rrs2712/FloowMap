@@ -136,14 +136,32 @@ public class Presenter extends Service implements MVPPresenter {
         this.isMapReady = true;
         this.mvpView = mvpView;
 
+        // In case of exist, this method will send previous journey state to the activity
+        validateRecoveryUIState();
+
         triggerPermissionsCheckUp(context);
 
         // This method will self-check permissions in case they're not granted by the time
-        // it is called
+        // it is called.
         startLocationManager(this);
 
-        // todo: In case of exist, this method will send previous journey state to the activity
-//        this.mvpView.onRecoveryState(isJourneyOn);
+    }
+
+    private void validateRecoveryUIState(){
+        // This query will return a single row or none
+        Cursor cursor = dbHelper.getLastJourney();
+
+        // If there is no record then there is any previous journey
+        if(isCursorEmpty(cursor)){isJourneyOn = false;}
+
+        // If there are journeys then validate the status of the last one
+        DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
+
+        if (dbJourney.getStatus().equals(DBHelper.JOURNEY_BEGINS)){
+            isJourneyOn = true;
+        }
+
+        this.mvpView.onRecoveryState(isJourneyOn);
     }
 
     @Override
@@ -334,7 +352,7 @@ public class Presenter extends Service implements MVPPresenter {
             Log.d(TAG,"Journey starting");
 
             // If true we'll insert the very first record
-            if (isTheFirstJourneyEver(cursor)){
+            if (isCursorEmpty(cursor)){
                 saveVeryFirstJourney();
             }else{
                 int lastJourneyId = getFieldFromCursor(DBHelper.JOURNEY_NAME,cursor);
@@ -362,8 +380,8 @@ public class Presenter extends Service implements MVPPresenter {
         return -1;
     }
 
-    private boolean isTheFirstJourneyEver(Cursor cursor){
-        Log.d(TAG,"isTheFirstJourneyEver");
+    private boolean isCursorEmpty(Cursor cursor){
+        Log.d(TAG,"isCursorEmpty");
         if (cursor.getCount() == 0){
             return true;
         }

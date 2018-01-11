@@ -13,6 +13,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -260,7 +261,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onRecoveryState(boolean isJourneyOn) {
         Log.d(TAG,"onRecoveryState");
-//        Switch aSwitch = (Switch) findViewById(R.id.track_switch);
-//        aSwitch.setChecked(isJourneyOn);
+        Switch aSwitch = (Switch) findViewById(R.id.switch_btn_journey);
+        aSwitch.setChecked(isJourneyOn);
     }
 }
