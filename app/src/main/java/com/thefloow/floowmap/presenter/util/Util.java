@@ -49,6 +49,18 @@ public class Util {
         return null;
     }
 
+    public static List<DBJourney> getDBJourneyListFrom(Cursor cursor) {
+        Log.v(TAG,"getDBJourneyFrom");
+        if(isCursorEmpty(cursor)){return null;}
+
+        List<DBJourney> dbJourneys = new ArrayList<>();
+        while (cursor.moveToNext()){
+            dbJourneys.add(getDBJourneyFrom(cursor));
+        }
+        return dbJourneys;
+    }
+
+
     public static boolean isCursorEmpty(Cursor cursor){
         Log.d(TAG,"isCursorEmpty");
         if(cursor.equals(null)){return true;}

@@ -1,5 +1,8 @@
 package com.thefloow.floowmap.model.bo;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Created by rrs27 on 2018-01-11.
  */
@@ -9,6 +12,18 @@ public class DBJourney {
     private int journeyId;
     private String status;
     private long timeStamp;
+
+    private final String DATE_PATTERN_FOR_USER = "dd/MMM/yy hh:mm:ss aa";
+
+    public String getTimeStampUserReadable() {
+        Date date = new Date(this.timeStamp);
+        SimpleDateFormat df = new SimpleDateFormat(DATE_PATTERN_FOR_USER);
+        return df.format(date);
+    }
+
+    public String getJourneyIdUserReadable() {
+        return "" + getJourneyId();
+    }
 
     public int getId() {
         return id;

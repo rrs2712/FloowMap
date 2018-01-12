@@ -1,43 +1,39 @@
 package com.thefloow.floowmap.model.bo;
 
-import com.google.android.gms.maps.model.LatLng;
-
-import java.util.List;
-
 /**
  * Created by rrs27 on 2018-01-11.
  */
 
 public class Journey {
-    private int journeyID;
-    private List<LatLng> LatLngs;
+    private DBJourney journeyStarted;
+    private DBJourney journeyFinished;
 
-    public int getJourneyID() {
-        return journeyID;
+    public DBJourney getJourneyStarted() {
+        return journeyStarted;
     }
 
-    public void setJourneyID(int journeyID) {
-        this.journeyID = journeyID;
+    public void setJourneyStarted(DBJourney journeyStarted) {
+        this.journeyStarted = journeyStarted;
     }
 
-    public List<LatLng> getLatLngs() {
-        return LatLngs;
+    public DBJourney getJourneyFinished() {
+        return journeyFinished;
     }
 
-    public void setLatLngs(List<LatLng> latLngs) {
-        LatLngs = latLngs;
+    public void setJourneyFinished(DBJourney journeyFinished) {
+        this.journeyFinished = journeyFinished;
     }
 
-    public Journey(int journeyID, List<LatLng> latLngs) {
-        this.journeyID = journeyID;
-        LatLngs = latLngs;
+    public Journey(DBJourney journeyStarted, DBJourney journeyFinished) {
+        this.journeyStarted = journeyStarted;
+        this.journeyFinished = journeyFinished;
     }
 
     @Override
     public String toString() {
         return "Journey{" +
-                "journeyID=" + journeyID +
-                ", LatLngs=" + LatLngs +
+                "journeyStarted=" + journeyStarted.toString() +
+                ", journeyFinished=" + journeyFinished.toString() +
                 '}';
     }
 }

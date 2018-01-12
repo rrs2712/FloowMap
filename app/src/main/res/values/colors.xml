@@ -6,4 +6,5 @@
     <color name="magnitude1">#4A7BA7</color>
     <color name="white">#FFFFFF</color>
     <color name="textColorLocationOffset">#B4BAC0</color>
+    <color name="textColorLocation">#2B3D4D</color>
 </resources>

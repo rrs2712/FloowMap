@@ -97,6 +97,29 @@ public class DBHelper extends SQLiteOpenHelper {
                     TABLE_LOCATION +
             " WHERE " +
                     LOCATION_JOURNEY_NAME + " = ?";
+    private String SELECT_JOURNEY_BY_NAME_N_STATUS =
+            "SELECT " +
+                    JOURNEY_ID + ", " +
+                    JOURNEY_NAME + ", " +
+                    JOURNEY_STATUS + ", " +
+                    JOURNEY_TIMESTAMP +
+            " FROM " +
+                    TABLE_JOURNEY +
+            " WHERE " +
+                    JOURNEY_NAME + " = ? AND " +
+                    JOURNEY_STATUS + " = ? ";
+    private final String SELECT_JOURNEYS_COMPLETED =
+            "SELECT " +
+                    JOURNEY_ID + ", " +
+                    JOURNEY_NAME + ", " +
+                    JOURNEY_STATUS + ", " +
+                    JOURNEY_TIMESTAMP +
+            " FROM " +
+                    TABLE_JOURNEY +
+            " WHERE " +
+                    JOURNEY_STATUS + " = '" + JOURNEY_ENDS + "'" +
+            " ORDER BY " +
+                    JOURNEY_ID + " ASC; ";
 
 
     public DBHelper(Context context) {
@@ -177,21 +200,10 @@ public class DBHelper extends SQLiteOpenHelper {
     public boolean saveJourneyLocation(int journeyID, Location location){
         ContentValues cv = new ContentValues();
 
-//        Double lat = Double.valueOf(location.getLatitude());
-//        Double lon = Double.valueOf(location.getLongitude());
-//        Long timeStamp = Long.valueOf(location.getTime());
-//
-//        cv.put(LOCATION_LAT,lat);
-//        cv.put(LOCATION_LON,lon);
-//        cv.put(LOCATION_TIMESTAMP,timeStamp);
-//        cv.put(LOCATION_JOURNEY_NAME,journeyID);
-
         cv.put(LOCATION_LAT,location.getLatitude());
         cv.put(LOCATION_LON,location.getLongitude());
         cv.put(LOCATION_TIMESTAMP,location.getTime());
         cv.put(LOCATION_JOURNEY_NAME,journeyID);
-
-        Log.d(TAG,"saveJourneyLocation: " + cv.toString());
 
         SQLiteDatabase db = this.getWritableDatabase();
         long result = db.insert(TABLE_LOCATION,LOCATION_LAT, cv);
@@ -215,4 +227,14 @@ public class DBHelper extends SQLiteOpenHelper {
         return db.rawQuery(SELECT_JOURNEY_LOCATIONS, new String[]{sJId});
     }
 
+    public Cursor getJourneysCompleted(){
+        SQLiteDatabase db =  this.getWritableDatabase();
+        return db.rawQuery(SELECT_JOURNEYS_COMPLETED, null);
+    }
+
+    public Cursor getDBJourney(int journeyName, String journeyStatus) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        String sJId = String.valueOf(journeyName);
+        return db.rawQuery(SELECT_JOURNEY_BY_NAME_N_STATUS, new String[]{sJId,journeyStatus});
+    }
 }

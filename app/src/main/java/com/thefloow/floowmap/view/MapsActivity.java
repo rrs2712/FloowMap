@@ -54,32 +54,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG,"onCreate");
         super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_maps);
 
         setAndBindService();
 
-        // Obtain the SupportMapFragment and set both as class variables
-//        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-
-        setLayout(1);
+        setContentView(R.layout.activity_maps);
+        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 
         onMapReadyCallback = this;
-    }
-
-    //todo:delete me at the end
-    private void setLayout(int whichOne){
-        switch (whichOne){
-            case 2:
-                setContentView(R.layout.activity_map_n_drawer);
-                mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
-                break;
-            case 1:
-            default:
-                setContentView(R.layout.activity_maps);
-                mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-                break;
-        }
-        Log.d(TAG,"Using layout: " + whichOne);
     }
 
     @Override
@@ -145,11 +126,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // This will trigger permissions check-up in the service
         presenter.onMapReady(this, this);
-
-        // todo: don't forget to remove these lines after testing
-//        LatLng london = presenter.requestModel();
-//        mMap.addMarker(new MarkerOptions().position(london).title("Marker in London"));
-//        mMap.moveCamera(CameraUpdateFactory.newLatLng(london));
 
         if (PermissionsHelper.areLocationPermissionsGranted(this)) {
             mMap.setMyLocationEnabled(true);
@@ -225,8 +201,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onDrawJourney(List<LatLng> latLngs) {
         Log.d(TAG, "onDrawJourney = " + latLngs.size() );
 
-        //todo: validate in presenter send a list with at least 1 element
-
         LatLng latLngIni = latLngs.get(0);
         MarkerOptions startLocation = new MarkerOptions()
                 .position(latLngIni)
@@ -247,12 +221,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Log.d(TAG, "onNewLocation");
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18f));
     }
-
-    // todo: delete this method if se second layout is not used
-//    public void onTrackSwitch(View view){
-//        Log.d(TAG,"onTrackSwitch");
-//        presenter.toggleJourneyOnOff();
-//    }
 
     public void onJourneySwitch(View view){
         Log.d(TAG,"onJourneySwitch");

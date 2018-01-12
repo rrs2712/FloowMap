@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">Floow Map</string>
     <string name="title_activity_maps">Floow Map</string>
+    <string name="journey_finished_on">Journey finished on</string>
+    <string name="journey_started_on">Journey started on</string>
 </resources>

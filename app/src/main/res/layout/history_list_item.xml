@@ -7,7 +7,7 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/magnitude"
+        android:id="@+id/j_name"
         android:layout_width="@dimen/circleDrawable"
         android:layout_height="@dimen/circleDrawable"
         android:layout_gravity="center_vertical"
@@ -18,31 +18,31 @@
         android:textSize="@dimen/textSizeMagnitude"
         />
 
-    <!--<LinearLayout-->
-        <!--android:layout_width="@dimen/zeroDP"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_weight="1"-->
-        <!--android:orientation="vertical"-->
-        <!--android:layout_marginLeft="@dimen/standardPadding">-->
-        <!--<TextView-->
-            <!--android:id="@+id/location_offset"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:ellipsize="end"-->
-            <!--android:fontFamily="sans-serif"-->
-            <!--android:maxLines="1"-->
-            <!--android:textAllCaps="true"-->
-            <!--android:textColor="@color/textColorLocationOffset"-->
-            <!--android:textSize="@dimen/textSizeDetails"/>-->
-        <!--<TextView-->
-            <!--android:id="@+id/location"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:ellipsize="end"-->
-            <!--android:maxLines="2"-->
-            <!--android:textColor="@color/textColorLocation"-->
-            <!--android:textSize="@dimen/textSizeLocation"/>-->
-    <!--</LinearLayout>-->
+    <LinearLayout
+        android:layout_width="@dimen/zeroDP"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginLeft="@dimen/standardPadding">
+        <TextView
+            android:id="@+id/j_ini"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:maxLines="1"
+            android:textAllCaps="true"
+            android:textColor="@color/textColorLocationOffset"
+            android:textSize="@dimen/textSizeDetails"/>
+        <TextView
+            android:id="@+id/j_end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/textColorLocation"
+            android:textSize="@dimen/textSizeLocation"/>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -52,14 +52,14 @@
         android:layout_marginStart="@dimen/standardPadding"
         android:orientation="vertical">
         <TextView
-            android:id="@+id/date_"
+            android:id="@+id/j_date_ini"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:textColor="@color/textColorLocationOffset"
             android:textSize="@dimen/textSizeDetails"/>
         <TextView
-            android:id="@+id/time_"
+            android:id="@+id/j_date_end"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
