@@ -33,26 +33,43 @@ import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, MVPView {
 
-//  You cannot instantiate a GoogleMap object directly, rather, you must obtain one from the getMapAsync() method on a MapFragment or MapView
-//  therefore, this object is part of the UI.
-//  https://developers.google.com/android/reference/com/google/android/gms/maps/GoogleMap
-    private GoogleMap mMap;
-
     private final String DEV = "RRS";
     private final String TAG = DEV + ":" + this.getClass().getSimpleName();
-
-    private MVPPresenter presenter;
-    private boolean isServiceBound=false;
-
     // Makes UI components available for all the activity
     SupportMapFragment mapFragment;
     OnMapReadyCallback onMapReadyCallback;
+    //  You cannot instantiate a GoogleMap object directly, rather, you must obtain one from the getMapAsync() method on a MapFragment or MapView
+//  therefore, this object is part of the UI.
+//  https://developers.google.com/android/reference/com/google/android/gms/maps/GoogleMap
+    private GoogleMap mMap;
+    private MVPPresenter presenter;
+    private boolean isServiceBound = false;
 
     /*## ACTIVITY LIFECYCLE ##*/
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            Log.d(TAG, "onServiceConnected");
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            Presenter.PresenterBinder binder = (Presenter.PresenterBinder) service;
+            presenter = binder.getService();
+            isServiceBound = true;
+
+            // When service is bound then prepare map.
+            // Call back in method: onMapReady(GoogleMap googleMap)
+            mapFragment.getMapAsync(onMapReadyCallback);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            Log.d(TAG, "onServiceDisconnected");
+            isServiceBound = false;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d(TAG,"onCreate");
+        Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
 
         setAndBindService();
@@ -65,33 +82,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     protected void onStart() {
-        Log.d(TAG,"onStart");
+        Log.d(TAG, "onStart");
         super.onStart();
     }
 
     @Override
     protected void onResume() {
-        Log.d(TAG,"onResume");
+        Log.d(TAG, "onResume");
         super.onResume();
     }
 
     @Override
     protected void onPause() {
-        Log.d(TAG,"onPause");
+        Log.d(TAG, "onPause");
         super.onPause();
         presenter.onActivityPaused();
     }
 
     @Override
     protected void onRestart() {
-        Log.d(TAG,"onRestart");
+        Log.d(TAG, "onRestart");
         super.onRestart();
         presenter.onActivityRestarted();
     }
 
     @Override
     protected void onStop() {
-        Log.d(TAG,"onStop");
+        Log.d(TAG, "onStop");
         super.onStop();
     }
 
@@ -100,15 +117,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     protected void onDestroy() {
-        Log.d(TAG,"onDestroy");
+        Log.d(TAG, "onDestroy");
         super.onDestroy();
 
-        if(isServiceBound){
+        if (isServiceBound) {
             presenter.onActivityDestroy(this, this.getClass());
             unbindService(serviceConnection);
-            isServiceBound= false;
+            isServiceBound = false;
         }
     }
+
+
+//    ## ACTIVITY DEPENDANT METHODS ##
 
     /**
      * Manipulates the map once available.
@@ -120,7 +140,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @SuppressLint("MissingPermission")
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Log.d(TAG,"onMapReady");
+        Log.d(TAG, "onMapReady");
 
         mMap = googleMap;
 
@@ -131,9 +151,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.setMyLocationEnabled(true);
         }
     }
-
-
-//    ## ACTIVITY DEPENDANT METHODS ##
 
     /**
      * Callback for the result from requesting permissions. This method
@@ -157,11 +174,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if(PermissionsHelper.areLocationPermissionsGranted(this)){
+        if (PermissionsHelper.areLocationPermissionsGranted(this)) {
             mMap.clear();
             mapFragment.getMapAsync(onMapReadyCallback);
-            Toast.makeText(this,PermissionsHelper.PERMISSION_GRANTED_MSG, Toast.LENGTH_LONG).show();
-        }else{
+            Toast.makeText(this, PermissionsHelper.PERMISSION_GRANTED_MSG, Toast.LENGTH_LONG).show();
+        } else {
             PermissionsHelper.showHelpDialog(this);
         }
     }
@@ -170,36 +187,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Starts and bind location service without creating a notification
      */
     private void setAndBindService() {
-        Intent serviceIntent = new Intent(this,Presenter.class);
+        Intent serviceIntent = new Intent(this, Presenter.class);
         startService(serviceIntent);
-        bindService(serviceIntent,serviceConnection, Context.BIND_AUTO_CREATE);
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
-
-
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            Log.d(TAG, "onServiceConnected");
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
-            Presenter.PresenterBinder binder = (Presenter.PresenterBinder) service;
-            presenter = binder.getService();
-            isServiceBound = true;
-
-            // When service is bound then prepare map.
-            // Call back in method: onMapReady(GoogleMap googleMap)
-            mapFragment.getMapAsync(onMapReadyCallback);
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-            Log.d(TAG, "onServiceDisconnected");
-            isServiceBound = false;
-        }
-    };
 
     @Override
     public void onDrawJourney(List<LatLng> latLngs) {
-        Log.d(TAG, "onDrawJourney = " + latLngs.size() );
+        Log.d(TAG, "onDrawJourney = " + latLngs.size());
 
         LatLng latLngIni = latLngs.get(0);
         MarkerOptions startLocation = new MarkerOptions()
@@ -222,20 +217,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18f));
     }
 
-    public void onJourneySwitch(View view){
-        Log.d(TAG,"onJourneySwitch");
+    public void onJourneySwitch(View view) {
+        Log.d(TAG, "onJourneySwitch");
         presenter.toggleJourneyOnOff();
     }
 
-    public void onJourneyHistory(View view){
-        Log.d(TAG,"onJourneySwitch");
+    public void onJourneyHistory(View view) {
+        Log.d(TAG, "onJourneySwitch");
         Intent i = new Intent(this, JourneyHistoryActivity.class);
         startActivity(i);
     }
 
     @Override
     public void onRecoveryState(boolean isJourneyOn) {
-        Log.d(TAG,"onRecoveryState");
+        Log.d(TAG, "onRecoveryState");
         Switch aSwitch = (Switch) findViewById(R.id.switch_btn_journey);
         aSwitch.setChecked(isJourneyOn);
     }

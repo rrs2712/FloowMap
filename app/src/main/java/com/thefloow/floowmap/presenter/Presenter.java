@@ -36,7 +36,7 @@ public class Presenter extends Service implements MVPPresenter {
     // Public access variables, especially regarding user preferences
     private final String DEV = "RRS";
     private final String TAG = DEV + ":" + this.getClass().getSimpleName();
-    // Private variables for binding, handling location manager and listener
+    // Service and binder
     private final IBinder binder = new PresenterBinder();
     private final String TITLE = "Floow Map";
     private final String CONTENT = "is tracking";
@@ -44,38 +44,28 @@ public class Presenter extends Service implements MVPPresenter {
     // Private variables representing retrieving location parameters
     private final long MIN_TIME_LOC_UPDATES_MILLI_SECS = 1000;
     private final float MIN_DIST_LOC_UPDATES_METERS = 5f;
+    // Model View Presenter
+    MVPView mvpView;
     // Database
     private DBHelper dbHelper;
-//    private SQLiteDatabase db;
-    //
-    MVPView mvpView;
+    // Location
     private LocationManager locationManager;
     private LocationListenerImpl locationListener;
-    //    private boolean isTrackingOn = false;
+    // Flow control
     private boolean isMapReady = false;
     private PermissionsHelper permHelp;
-    // Controls whether to track-and-save a journey or not
     private boolean isJourneyOn = false;
-//    private Journey journey;
-//    private int journeyId = -1;
 
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
         this.dbHelper = new DBHelper(this.getApplicationContext());
-//        this.db = dbHelper.getWritableDatabase();
-    }
-
-    private void recoverPreviousJourneyIfExisted() {
-        Log.d(TAG,"recoverPreviousJourneyIfExisted");
-        // todo: implement this method
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand");
         permHelp = new PermissionsHelper();
-        recoverPreviousJourneyIfExisted();
         // START_STICKY is used for services that are explicitly started and stopped
         // https://developer.android.com/reference/android/app/Service.html
         return Service.START_STICKY;
@@ -96,36 +86,24 @@ public class Presenter extends Service implements MVPPresenter {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
-        // Things to do before destroying the service
-        // todo: saveJourney();
         stopLocationManager(this);
     }
 
-//    private void saveJourney() {
-//        Log.d(TAG,"saveJourney");
-//        if(!isJourneyOn){ return; }
-//        //todo: implement this method
-//    }
-//
-//    private void saveJourneyLocation(Journey journey) {
-//        if(!isJourneyOn){ return; }
-//        //todo: implement this method
-//    }
-
     @Override
     public LatLng requestModel() {
-        return getFirstPosition();
+        // i.e.
+        LatLng london = new LatLng(51.5, 0);
+        return london;
     }
-
-
 
     /**
      * Call this method in activities when all of the following is satisfied:
-     *      activity is onResume
-     *      activity is bound to this service
-     *      map view ready.
+     * activity is onResume
+     * activity is bound to this service
+     * map view ready.
      * It basically means all is working and prepared to receive instructions from
      * the service
+     *
      * @param context
      * @param mvpView
      */
@@ -140,17 +118,17 @@ public class Presenter extends Service implements MVPPresenter {
         // it is called.
         startLocationManager(this);
 
-        // todo: In case of exists, this method will send previous journey state to the activity
+        // In case of exists, this method will send previous journey state to the activity
         validateIsJourneyOn();
         this.mvpView.onRecoveryState(isJourneyOn);
     }
 
-    private void validateIsJourneyOn(){
+    private void validateIsJourneyOn() {
         // This query will return a single row or none
         Cursor cursor = dbHelper.getLastJourney();
 
         // If there is no record then there is any previous journey
-        if(Util.isCursorEmpty(cursor)){
+        if (Util.isCursorEmpty(cursor)) {
             isJourneyOn = false;
             return;
         }
@@ -158,7 +136,7 @@ public class Presenter extends Service implements MVPPresenter {
         // If there are journeys then validate the status of the last one
         DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
 
-        if (dbJourney.getStatus().equals(DBHelper.JOURNEY_BEGINS)){
+        if (dbJourney.getStatus().equals(DBHelper.JOURNEY_BEGINS)) {
             isJourneyOn = true;
         }
     }
@@ -166,16 +144,14 @@ public class Presenter extends Service implements MVPPresenter {
     @Override
     public void onActivityPaused() {
         this.isMapReady = false;
-        Log.d(TAG,"onActivityPaused");
+        Log.d(TAG, "onActivityPaused");
     }
 
     @Override
     public void onActivityRestarted() {
         this.isMapReady = true;
-        Log.d(TAG,"onActivityRestarted");
+        Log.d(TAG, "onActivityRestarted");
     }
-
-
 
 
     @Override
@@ -194,7 +170,6 @@ public class Presenter extends Service implements MVPPresenter {
             permHelp.showLocationPermissionsDialog(context);
         }
     }
-    //    ## PERMISSIONS RELATED METHODS - END ##
 
     /**
      * Creates a notification that cancels itself once the user clicks it. Sorted above the regular
@@ -221,15 +196,6 @@ public class Presenter extends Service implements MVPPresenter {
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         notificationManager.notify(0, notification);
-    }
-
-    // todo: delete me after testing
-    private LatLng getFirstPosition() {
-        Log.d(TAG, "requestFirstPosition");
-
-        // Add a marker in London and move the camera
-        LatLng london = new LatLng(51.5, 0);
-        return london;
     }
 
     /**
@@ -290,16 +256,16 @@ public class Presenter extends Service implements MVPPresenter {
         Log.d(TAG, "onLocationReceived");
 
         // Persist the model in the DB
-         addToCurrentJourney(location);
+        addToCurrentJourney(location);
 
         // If map is ready then send location to view
         addToCurrentMap(location);
     }
 
     private void addToCurrentMap(Location location) {
-        if(isMapReady){
+        if (isMapReady) {
 
-            if(isJourneyOn){
+            if (isJourneyOn) {
                 Cursor cJourney = dbHelper.getLastJourney();
                 DBJourney dbJourney = Util.getDBJourneyFrom(cJourney);
 
@@ -313,68 +279,60 @@ public class Presenter extends Service implements MVPPresenter {
         }
     }
 
-    private void addToCurrentJourney(Location location){
+    private void addToCurrentJourney(Location location) {
         // if isJourneyOn = true, then, it means there is currently an ongoing journey
-        if(!isJourneyOn){
-            Log.d(TAG,"addToCurrentJourney: can't add location to DB 'cause isJourneyOn = " + isJourneyOn);
+        if (!isJourneyOn) {
+            Log.d(TAG, "addToCurrentJourney: can't add location to DB 'cause isJourneyOn = " + isJourneyOn);
             return;
         }
-        if(Util.isLocationEmpty(location)){
-            Log.d(TAG,"addToCurrentJourney: can't add location to DB 'cause location is empty ");
+        if (Util.isLocationEmpty(location)) {
+            Log.d(TAG, "addToCurrentJourney: can't add location to DB 'cause location is empty ");
             return;
         }
 
         // Obtain current journey
         Cursor cursor = dbHelper.getLastJourney();
         DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
-        if(dbJourney==null){
-            Log.d(TAG,"addToCurrentJourney: can't add location to DB 'cause DBJourney is null ");
+        if (dbJourney == null) {
+            Log.d(TAG, "addToCurrentJourney: can't add location to DB 'cause DBJourney is null ");
             return;
         }
 
-        if(dbJourney.getStatus().equals(DBHelper.JOURNEY_BEGINS)){
-            dbHelper.saveJourneyLocation(dbJourney.getJourneyId(),location);
+        if (dbJourney.getStatus().equals(DBHelper.JOURNEY_BEGINS)) {
+            dbHelper.saveJourneyLocation(dbJourney.getJourneyId(), location);
         }
     }
 
 
-
     /**
      * This method allows:
-     *      to draw the user's journey in the map;
-     *      the service to know if the trip should be recorded;
-     *      if the activity is destroyed:
-     *          runs tracking in background;
-     *          creates a notification icon in the bar;
+     * to draw the user's journey in the map;
+     * the service to know if the trip should be recorded;
+     * if the activity is destroyed:
+     * runs tracking in background;
+     * creates a notification icon in the bar;
      * The initial state is journey off.
      */
     @Override
     public void toggleJourneyOnOff() {
         isJourneyOn = !isJourneyOn;
-        Log.d(TAG,"isJourneyOn=" + isJourneyOn);
+        Log.d(TAG, "isJourneyOn=" + isJourneyOn);
 
         manageJourney(isJourneyOn);
 
-        //todo: delete this line
-        printLastJourney();
-    }
-
-    private void printLastJourney(){
-        Cursor cursor = dbHelper.getLastJourney();
-        DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
-        Log.d(TAG,dbJourney.toString());
     }
 
     /**
      * Sets the journey to null if false, otherwise, returns a brand new
      * Journey object
+     *
      * @param isNewJourney
      */
-    private void manageJourney(boolean isNewJourney){
+    private void manageJourney(boolean isNewJourney) {
         // This query will return a single row or none
         Cursor cursor = dbHelper.getLastJourney();
 
-        if(isNewJourney){
+        if (isNewJourney) {
             startNewJourney(cursor);
         } else {
             stopJourney(cursor);
@@ -382,47 +340,36 @@ public class Presenter extends Service implements MVPPresenter {
     }
 
     private void stopJourney(Cursor cursor) {
-        Log.d(TAG,"stopJourney");
+        Log.d(TAG, "stopJourney");
 
         DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
-        dbHelper.saveJourney(dbJourney.getJourneyId(),Util.getUnixTime(),DBHelper.JOURNEY_ENDS);
+        dbHelper.saveJourney(dbJourney.getJourneyId(), Util.getUnixTime(), DBHelper.JOURNEY_ENDS);
     }
 
-    private void startNewJourney(Cursor cursor){
-        Log.d(TAG,"startNewJourney");
+    private void startNewJourney(Cursor cursor) {
+        Log.d(TAG, "startNewJourney");
 
         // If true we'll insert the record for the very first time
-        if (Util.isCursorEmpty(cursor)){
+        if (Util.isCursorEmpty(cursor)) {
             startFirstJourney();
-        }else{
+        } else {
             startJourney(cursor);
         }
     }
 
     private void startJourney(Cursor cursor) {
         DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
-//        int lastJourneyId = getFieldFromCursor(DBHelper.JOURNEY_NAME,cursor);
         int newJourneyId = dbJourney.getJourneyId() + 1;
-        dbHelper.saveJourney(newJourneyId,Util.getUnixTime(),DBHelper.JOURNEY_BEGINS);
+        dbHelper.saveJourney(newJourneyId, Util.getUnixTime(), DBHelper.JOURNEY_BEGINS);
     }
-
-//    private int getFieldFromCursor(String field, Cursor cursor){
-//        while (cursor.moveToNext()){
-//            int colIndex = cursor.getColumnIndex(field);
-//            return cursor.getInt(colIndex);
-//        }
-//        return -1;
-//Cursor cursor = dbHelper.getLastJourney();
-//        Log.d(TAG,dbJourney.toString());
-//    }
 
     /**
      * When the DB is brand new, this method will set the values for the first
      * record
      */
-    private void startFirstJourney(){
-        Log.d(TAG,"startFirstJourney");
-        dbHelper.saveJourney(FIRST_JOURNEY,Util.getUnixTime(),DBHelper.JOURNEY_BEGINS);
+    private void startFirstJourney() {
+        Log.d(TAG, "startFirstJourney");
+        dbHelper.saveJourney(FIRST_JOURNEY, Util.getUnixTime(), DBHelper.JOURNEY_BEGINS);
     }
 
     /**
