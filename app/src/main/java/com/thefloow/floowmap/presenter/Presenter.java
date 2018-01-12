@@ -8,7 +8,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Binder;
@@ -19,14 +18,12 @@ import android.util.Log;
 import com.google.android.gms.maps.model.LatLng;
 import com.thefloow.floowmap.R;
 import com.thefloow.floowmap.model.bo.DBJourney;
-import com.thefloow.floowmap.model.bo.Journey;
 import com.thefloow.floowmap.model.db.DBHelper;
 import com.thefloow.floowmap.presenter.Location.LocationListenerImpl;
 import com.thefloow.floowmap.presenter.permission.PermissionsHelper;
 import com.thefloow.floowmap.presenter.util.Util;
 import com.thefloow.floowmap.view.MVPView;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,6 +32,7 @@ import java.util.List;
 
 public class Presenter extends Service implements MVPPresenter {
 
+    public static final int FIRST_JOURNEY = 1;
     // Public access variables, especially regarding user preferences
     private final String DEV = "RRS";
     private final String TAG = DEV + ":" + this.getClass().getSimpleName();
@@ -48,7 +46,7 @@ public class Presenter extends Service implements MVPPresenter {
     private final float MIN_DIST_LOC_UPDATES_METERS = 5f;
     // Database
     private DBHelper dbHelper;
-    private SQLiteDatabase db;
+//    private SQLiteDatabase db;
     //
     MVPView mvpView;
     private LocationManager locationManager;
@@ -58,14 +56,14 @@ public class Presenter extends Service implements MVPPresenter {
     private PermissionsHelper permHelp;
     // Controls whether to track-and-save a journey or not
     private boolean isJourneyOn = false;
-    private Journey journey;
-    private int journeyId = -1;
+//    private Journey journey;
+//    private int journeyId = -1;
 
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
         this.dbHelper = new DBHelper(this.getApplicationContext());
-        this.db = dbHelper.getWritableDatabase();
+//        this.db = dbHelper.getWritableDatabase();
     }
 
     private void recoverPreviousJourneyIfExisted() {
@@ -99,20 +97,20 @@ public class Presenter extends Service implements MVPPresenter {
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         // Things to do before destroying the service
-        saveJourney();
+        // todo: saveJourney();
         stopLocationManager(this);
     }
 
-    private void saveJourney() {
-        Log.d(TAG,"saveJourney");
-        if(!isJourneyOn){ return; }
-        //todo: implement this method
-    }
-
-    private void saveJourneyLocation(Journey journey) {
-        if(!isJourneyOn){ return; }
-        //todo: implement this method
-    }
+//    private void saveJourney() {
+//        Log.d(TAG,"saveJourney");
+//        if(!isJourneyOn){ return; }
+//        //todo: implement this method
+//    }
+//
+//    private void saveJourneyLocation(Journey journey) {
+//        if(!isJourneyOn){ return; }
+//        //todo: implement this method
+//    }
 
     @Override
     public LatLng requestModel() {
@@ -136,23 +134,26 @@ public class Presenter extends Service implements MVPPresenter {
         this.isMapReady = true;
         this.mvpView = mvpView;
 
-        // In case of exist, this method will send previous journey state to the activity
-        validateRecoveryUIState();
-
         triggerPermissionsCheckUp(context);
 
         // This method will self-check permissions in case they're not granted by the time
         // it is called.
         startLocationManager(this);
 
+        // todo: In case of exists, this method will send previous journey state to the activity
+        validateIsJourneyOn();
+        this.mvpView.onRecoveryState(isJourneyOn);
     }
 
-    private void validateRecoveryUIState(){
+    private void validateIsJourneyOn(){
         // This query will return a single row or none
         Cursor cursor = dbHelper.getLastJourney();
 
         // If there is no record then there is any previous journey
-        if(isCursorEmpty(cursor)){isJourneyOn = false;}
+        if(Util.isCursorEmpty(cursor)){
+            isJourneyOn = false;
+            return;
+        }
 
         // If there are journeys then validate the status of the last one
         DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
@@ -160,8 +161,6 @@ public class Presenter extends Service implements MVPPresenter {
         if (dbJourney.getStatus().equals(DBHelper.JOURNEY_BEGINS)){
             isJourneyOn = true;
         }
-
-        this.mvpView.onRecoveryState(isJourneyOn);
     }
 
     @Override
@@ -290,20 +289,51 @@ public class Presenter extends Service implements MVPPresenter {
     public void onLocationReceived(Location location) {
         Log.d(TAG, "onLocationReceived");
 
-        LatLng latLng = Util.getLatLngFrom(location);
+        // Persist the model in the DB
+         addToCurrentJourney(location);
 
-        if(isJourneyOn){
-            journey.getLatLngs().add(latLng);
-            saveJourneyLocation(journey);
-        }
+        // If map is ready then send location to view
+        addToCurrentMap(location);
+    }
 
-        // If map is ready then do no send location to view
+    private void addToCurrentMap(Location location) {
         if(isMapReady){
+
             if(isJourneyOn){
-                mvpView.onDrawJourney(journey.getLatLngs());
+                Cursor cJourney = dbHelper.getLastJourney();
+                DBJourney dbJourney = Util.getDBJourneyFrom(cJourney);
+
+                Cursor cLocations = dbHelper.getJourneyLocations(dbJourney.getJourneyId());
+                List<LatLng> latLngs = Util.getLatLngsFrom(cLocations);
+                mvpView.onDrawJourney(latLngs);
             }
 
+            LatLng latLng = Util.getLatLngFrom(location);
             mvpView.onNewLocation(latLng);
+        }
+    }
+
+    private void addToCurrentJourney(Location location){
+        // if isJourneyOn = true, then, it means there is currently an ongoing journey
+        if(!isJourneyOn){
+            Log.d(TAG,"addToCurrentJourney: can't add location to DB 'cause isJourneyOn = " + isJourneyOn);
+            return;
+        }
+        if(Util.isLocationEmpty(location)){
+            Log.d(TAG,"addToCurrentJourney: can't add location to DB 'cause location is empty ");
+            return;
+        }
+
+        // Obtain current journey
+        Cursor cursor = dbHelper.getLastJourney();
+        DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
+        if(dbJourney==null){
+            Log.d(TAG,"addToCurrentJourney: can't add location to DB 'cause DBJourney is null ");
+            return;
+        }
+
+        if(dbJourney.getStatus().equals(DBHelper.JOURNEY_BEGINS)){
+            dbHelper.saveJourneyLocation(dbJourney.getJourneyId(),location);
         }
     }
 
@@ -323,7 +353,9 @@ public class Presenter extends Service implements MVPPresenter {
         isJourneyOn = !isJourneyOn;
         Log.d(TAG,"isJourneyOn=" + isJourneyOn);
 
-        journey = manageJourney(isJourneyOn);
+        manageJourney(isJourneyOn);
+
+        //todo: delete this line
         printLastJourney();
     }
 
@@ -337,62 +369,60 @@ public class Presenter extends Service implements MVPPresenter {
      * Sets the journey to null if false, otherwise, returns a brand new
      * Journey object
      * @param isNewJourney
-     * @return
      */
-    private Journey manageJourney(boolean isNewJourney){
+    private void manageJourney(boolean isNewJourney){
         // This query will return a single row or none
         Cursor cursor = dbHelper.getLastJourney();
 
-        //todo: delete this
-        int fakeId = -1;
-        List<LatLng> latLngs = new ArrayList<>();
-
         if(isNewJourney){
-            // Records on start
-            Log.d(TAG,"Journey starting");
-
-            // If true we'll insert the very first record
-            if (isCursorEmpty(cursor)){
-                saveVeryFirstJourney();
-            }else{
-                int lastJourneyId = getFieldFromCursor(DBHelper.JOURNEY_NAME,cursor);
-                int newJourneyId = lastJourneyId + 1;
-                long unixTime = System.currentTimeMillis();
-                dbHelper.saveJourney(newJourneyId,unixTime,DBHelper.JOURNEY_BEGINS);
-            }
-
-            return new Journey(fakeId,latLngs);
+            startNewJourney(cursor);
         } else {
-            // Records on finish
-            Log.d(TAG,"Journey Finishing");
-            int lastJourneyId = getFieldFromCursor(DBHelper.JOURNEY_NAME,cursor);
-            long unixTime = System.currentTimeMillis();
-            dbHelper.saveJourney(lastJourneyId,unixTime,DBHelper.JOURNEY_ENDS);
+            stopJourney(cursor);
         }
-        return null;
     }
 
-    private int getFieldFromCursor(String field, Cursor cursor){
-        while (cursor.moveToNext()){
-            int colIndex = cursor.getColumnIndex(field);
-            return cursor.getInt(colIndex);
-        }
-        return -1;
+    private void stopJourney(Cursor cursor) {
+        Log.d(TAG,"stopJourney");
+
+        DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
+        dbHelper.saveJourney(dbJourney.getJourneyId(),Util.getUnixTime(),DBHelper.JOURNEY_ENDS);
     }
 
-    private boolean isCursorEmpty(Cursor cursor){
-        Log.d(TAG,"isCursorEmpty");
-        if (cursor.getCount() == 0){
-            return true;
+    private void startNewJourney(Cursor cursor){
+        Log.d(TAG,"startNewJourney");
+
+        // If true we'll insert the record for the very first time
+        if (Util.isCursorEmpty(cursor)){
+            startFirstJourney();
+        }else{
+            startJourney(cursor);
         }
-        return false;
     }
 
-    private void saveVeryFirstJourney(){
-        Log.d(TAG,"saveVeryFirstJourney");
-        int firstName = 1;
-        long unixTime = System.currentTimeMillis();
-        dbHelper.saveJourney(firstName,unixTime,DBHelper.JOURNEY_BEGINS);
+    private void startJourney(Cursor cursor) {
+        DBJourney dbJourney = Util.getDBJourneyFrom(cursor);
+//        int lastJourneyId = getFieldFromCursor(DBHelper.JOURNEY_NAME,cursor);
+        int newJourneyId = dbJourney.getJourneyId() + 1;
+        dbHelper.saveJourney(newJourneyId,Util.getUnixTime(),DBHelper.JOURNEY_BEGINS);
+    }
+
+//    private int getFieldFromCursor(String field, Cursor cursor){
+//        while (cursor.moveToNext()){
+//            int colIndex = cursor.getColumnIndex(field);
+//            return cursor.getInt(colIndex);
+//        }
+//        return -1;
+//Cursor cursor = dbHelper.getLastJourney();
+//        Log.d(TAG,dbJourney.toString());
+//    }
+
+    /**
+     * When the DB is brand new, this method will set the values for the first
+     * record
+     */
+    private void startFirstJourney(){
+        Log.d(TAG,"startFirstJourney");
+        dbHelper.saveJourney(FIRST_JOURNEY,Util.getUnixTime(),DBHelper.JOURNEY_BEGINS);
     }
 
     /**

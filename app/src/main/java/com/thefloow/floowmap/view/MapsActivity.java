@@ -27,6 +27,7 @@ import com.thefloow.floowmap.R;
 import com.thefloow.floowmap.presenter.MVPPresenter;
 import com.thefloow.floowmap.presenter.Presenter;
 import com.thefloow.floowmap.presenter.permission.PermissionsHelper;
+import com.thefloow.floowmap.view.history.JourneyHistoryActivity;
 
 import java.util.List;
 
@@ -248,14 +249,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     // todo: delete this method if se second layout is not used
-    public void onTrackSwitch(View view){
-        Log.d(TAG,"onTrackSwitch");
-        presenter.toggleJourneyOnOff();
-    }
+//    public void onTrackSwitch(View view){
+//        Log.d(TAG,"onTrackSwitch");
+//        presenter.toggleJourneyOnOff();
+//    }
 
     public void onJourneySwitch(View view){
         Log.d(TAG,"onJourneySwitch");
         presenter.toggleJourneyOnOff();
+    }
+
+    public void onJourneyHistory(View view){
+        Log.d(TAG,"onJourneySwitch");
+        Intent i = new Intent(this, JourneyHistoryActivity.class);
+        startActivity(i);
     }
 
     @Override
